@@ -2,15 +2,15 @@ package zenquotes
 
 // Quote is one motivational quote from ZenQuotes.io.
 type Quote struct {
-	Rank   int    `json:"rank"`
-	Text   string `json:"text"`
+	Quote  string `kit:"id" json:"quote"`
 	Author string `json:"author"`
+	Length string `json:"length"`
 }
 
-// rawQuote is the wire shape returned by the ZenQuotes API.
-// Only q and a are used; h (HTML blockquote) is discarded.
-type rawQuote struct {
-	Q string `json:"q"`
-	A string `json:"a"`
-	H string `json:"h"`
+// wireQuote is the raw JSON shape returned by the ZenQuotes API.
+// Fields i (image URL) and h (HTML blockquote) are discarded.
+type wireQuote struct {
+	Q string `json:"q"` // quote text
+	A string `json:"a"` // author
+	C string `json:"c"` // character count
 }

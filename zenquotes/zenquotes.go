@@ -2,7 +2,7 @@
 // the HTTP client, request shaping, and the typed data models for the
 // ZenQuotes.io public motivational quote API.
 //
-// The API requires no authentication. A polite User-Agent and 200 ms pacing
+// The API requires no authentication. A polite User-Agent and 500 ms pacing
 // between requests keeps the client well within the free-tier rate limits.
 package zenquotes
 
@@ -31,10 +31,10 @@ type Config struct {
 // DefaultConfig returns a Config with sensible defaults.
 func DefaultConfig() Config {
 	return Config{
-		BaseURL:   "https://zenquotes.io/api",
-		UserAgent: "zenquotes-cli/0.1 (github.com/tamnd/zenquotes-cli)",
-		Rate:      200 * time.Millisecond,
-		Timeout:   15 * time.Second,
+		BaseURL:   "https://zenquotes.io",
+		UserAgent: "zenquotes-cli/0.1 (tamnd87@gmail.com)",
+		Rate:      500 * time.Millisecond,
+		Timeout:   10 * time.Second,
 		Retries:   3,
 	}
 }
@@ -57,41 +57,43 @@ func NewClient(cfg Config) *Client {
 
 // Random fetches one random motivational quote.
 func (c *Client) Random(ctx context.Context) (Quote, error) {
-	u := c.cfg.BaseURL + "/random"
-	body, err := c.get(ctx, u)
+	body, err := c.get(ctx, c.cfg.BaseURL+"/api/random")
 	if err != nil {
 		return Quote{}, err
 	}
-	var raw []rawQuote
+	var raw []wireQuote
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return Quote{}, fmt.Errorf("decode random quote: %w", err)
 	}
 	if len(raw) == 0 {
-		return Quote{}, fmt.Errorf("empty response from /random")
+		return Quote{}, fmt.Errorf("empty response from /api/random")
 	}
-	return Quote{Rank: 1, Text: raw[0].Q, Author: raw[0].A}, nil
+	return toQuote(raw[0]), nil
 }
 
-// Quotes fetches a batch of up to 50 motivational quotes.
-// Pass limit <= 0 to return all 50.
-func (c *Client) Quotes(ctx context.Context, limit int) ([]Quote, error) {
-	u := c.cfg.BaseURL + "/quotes"
-	body, err := c.get(ctx, u)
+// Today fetches today's featured quote. The API returns the same quote for
+// the entire day.
+func (c *Client) Today(ctx context.Context) (Quote, error) {
+	body, err := c.get(ctx, c.cfg.BaseURL+"/api/today")
 	if err != nil {
-		return nil, err
+		return Quote{}, err
 	}
-	var raw []rawQuote
+	var raw []wireQuote
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, fmt.Errorf("decode quotes: %w", err)
+		return Quote{}, fmt.Errorf("decode today quote: %w", err)
 	}
-	items := make([]Quote, 0, len(raw))
-	for i, r := range raw {
-		items = append(items, Quote{Rank: i + 1, Text: r.Q, Author: r.A})
+	if len(raw) == 0 {
+		return Quote{}, fmt.Errorf("empty response from /api/today")
 	}
-	if limit > 0 && limit < len(items) {
-		items = items[:limit]
+	return toQuote(raw[0]), nil
+}
+
+func toQuote(w wireQuote) Quote {
+	return Quote{
+		Quote:  w.Q,
+		Author: w.A,
+		Length: w.C,
 	}
-	return items, nil
 }
 
 func (c *Client) get(ctx context.Context, url string) ([]byte, error) {
