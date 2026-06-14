@@ -1,0 +1,10 @@
+title       = "zenquotes"
+baseURL     = "https://zenquotes-cli.tamnd.com/"
+description = "A command line for zenquotes."
+contentDir  = "content"
+outputDir   = "public"
+theme       = "tago-doks"
+syntaxHighlight = "true"
+
+[params]
+github = "https://github.com/tamnd/zenquotes-cli"
