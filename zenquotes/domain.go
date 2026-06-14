@@ -49,13 +49,13 @@ func (Domain) Register(app *kit.App) {
 		Summary: "Fetch one random motivational quote",
 	}, randomOp)
 
-	// quotes: fetch a batch of motivational quotes
+	// today: fetch today's featured quote
 	kit.Handle(app, kit.OpMeta{
-		Name:    "quotes",
+		Name:    "today",
 		Group:   "read",
-		List:    true,
-		Summary: "Fetch a batch of motivational quotes",
-	}, quotesOp)
+		Single:  true,
+		Summary: "Fetch today's featured quote",
+	}, todayOp)
 }
 
 // newClient builds the client from host-resolved config.
@@ -83,8 +83,7 @@ type randomInput struct {
 	Client *Client       `kit:"inject"`
 }
 
-type quotesInput struct {
-	Limit  int           `kit:"flag,inherit" help:"max results"`
+type todayInput struct {
 	Delay  time.Duration `kit:"flag,inherit" help:"minimum spacing between requests"`
 	Client *Client       `kit:"inject"`
 }
@@ -99,21 +98,12 @@ func randomOp(ctx context.Context, in randomInput, emit func(Quote) error) error
 	return emit(q)
 }
 
-func quotesOp(ctx context.Context, in quotesInput, emit func(Quote) error) error {
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 50
-	}
-	items, err := in.Client.Quotes(ctx, limit)
+func todayOp(ctx context.Context, in todayInput, emit func(Quote) error) error {
+	q, err := in.Client.Today(ctx)
 	if err != nil {
 		return mapErr(err)
 	}
-	for _, item := range items {
-		if err := emit(item); err != nil {
-			return err
-		}
-	}
-	return nil
+	return emit(q)
 }
 
 // --- Resolver ---
